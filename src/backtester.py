@@ -30,9 +30,9 @@ class Trade:
     stop_reason: str | None
 
 
-def run_pairs_backtest(price_data: pd.DataFrame) -> dict[str, Any]:
+def run_pairs_backtest(price_data: pd.DataFrame, tickers: tuple[str, str]) -> dict[str, Any]:
     """Run pairs strategy with cointegration and mean-reversion controls."""
-    asset_a, asset_b = config.TICKERS
+    asset_a, asset_b = tickers
     prices_a = price_data[asset_a]
     prices_b = price_data[asset_b]
     returns_a = prices_a.pct_change().fillna(0.0)

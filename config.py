@@ -5,7 +5,11 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 
-TICKERS: list[str] = ["MSFT", "AAPL"]
+PAIRS: list[tuple[str, str]] = [
+    ("MSFT", "AAPL"),
+    ("KO", "PEP"),
+    ("NVDA", "AMD"),
+]
 BENCHMARK: str = "QQQ"
 
 # Five-year window ending in April 2026.
@@ -16,7 +20,7 @@ INITIAL_CAPITAL: float = 100_000.0
 
 LOOKBACK_WINDOW: int = 90
 P_VALUE_THRESHOLD: float = 0.05
-Z_ENTRY: float = 2.0
+Z_ENTRY: float = 2
 Z_EXIT: float = 0.5
 Z_STOP_LOSS: float = 4.0
 MAX_HALF_LIFE: int = 30

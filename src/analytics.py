@@ -59,13 +59,14 @@ def plot_strategy_dashboard(
     price_data: pd.DataFrame,
     spread: pd.Series,
     zscore: pd.Series,
+    tickers: tuple[str, str],
 ) -> None:
     """Plot normalized prices, z-score signals, and spread."""
-    asset_a, asset_b = config.TICKERS
+    asset_a, asset_b = tickers
     norm_prices = price_data[[asset_a, asset_b]] / price_data[[asset_a, asset_b]].iloc[0]
 
     fig, axes = plt.subplots(3, 1, figsize=(14, 11), sharex=True)
-    fig.suptitle("Pairs Strategy Dashboard", fontsize=14)
+    fig.suptitle(f"Pairs Strategy Dashboard: {asset_a}/{asset_b}", fontsize=14)
 
     axes[0].plot(norm_prices.index, norm_prices[asset_a], label=asset_a)
     axes[0].plot(norm_prices.index, norm_prices[asset_b], label=asset_b)
@@ -97,10 +98,11 @@ def plot_strategy_dashboard(
 def plot_comparison_dashboard(
     strategy_cumulative: pd.Series,
     benchmark_cumulative: pd.Series,
+    strategy_label: str = "Pairs Strategy",
 ) -> None:
     """Plot cumulative returns for strategy versus benchmark."""
     plt.figure(figsize=(14, 5))
-    plt.plot(strategy_cumulative.index, strategy_cumulative, label="Pairs Strategy", linewidth=2)
+    plt.plot(strategy_cumulative.index, strategy_cumulative, label=strategy_label, linewidth=2)
     plt.plot(benchmark_cumulative.index, benchmark_cumulative, label=f"Buy & Hold {config.BENCHMARK}", linewidth=2)
     plt.title("Cumulative Return Comparison")
     plt.ylabel("Growth of $1")
