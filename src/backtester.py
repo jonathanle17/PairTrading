@@ -38,6 +38,9 @@ def run_pairs_backtest(price_data: pd.DataFrame, tickers: tuple[str, str]) -> di
     returns_a = prices_a.pct_change().fillna(0.0)
     returns_b = prices_b.pct_change().fillna(0.0)
 
+    rolling_vol_a = returns_a.rolling(config.VOL_WINDOW).std()
+    rolling_vol_b = returns_b.rolling(config.VOL_WINDOW).std()
+
     log_a = np.log(prices_a)
     log_b = np.log(prices_b)
 
@@ -69,7 +72,25 @@ def run_pairs_backtest(price_data: pd.DataFrame, tickers: tuple[str, str]) -> di
         if np.isnan(prev_equity):
             prev_equity = config.INITIAL_CAPITAL
 
-        pair_return = position * 0.5 * (returns_a.iloc[i] - returns_b.iloc[i])
+        vol_a = rolling_vol_a.iloc[i - 1]
+        vol_b = rolling_vol_b.iloc[i - 1]
+        if (
+            pd.isna(vol_a)
+            or pd.isna(vol_b)
+            or vol_a <= 0
+            or vol_b <= 0
+        ):
+            weight_a = 0.5
+            weight_b = 0.5
+        else:
+            inv_vol_a = 1.0 / vol_a
+            inv_vol_b = 1.0 / vol_b
+            weight_a = inv_vol_a / (inv_vol_a + inv_vol_b)
+            weight_b = inv_vol_b / (inv_vol_a + inv_vol_b)
+
+        pair_return = position * (
+            weight_a * returns_a.iloc[i] - weight_b * returns_b.iloc[i]
+        )
         curr_equity = prev_equity * (1.0 + pair_return)
 
         if i >= config.LOOKBACK_WINDOW:

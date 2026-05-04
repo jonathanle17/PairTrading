@@ -19,6 +19,7 @@ START_DATE: str = (date(2026, 4, 30) - timedelta(days=365 * 5)).isoformat()
 INITIAL_CAPITAL: float = 100_000.0
 
 LOOKBACK_WINDOW: int = 90
+VOL_WINDOW: int = 20
 P_VALUE_THRESHOLD: float = 0.05
 Z_ENTRY: float = 2
 MIN_SPREAD_PCT: float = 0.05
