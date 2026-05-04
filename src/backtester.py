@@ -41,8 +41,8 @@ def run_pairs_backtest(price_data: pd.DataFrame, tickers: tuple[str, str]) -> di
     rolling_vol_a = returns_a.rolling(config.VOL_WINDOW).std()
     rolling_vol_b = returns_b.rolling(config.VOL_WINDOW).std()
 
-    log_a = np.log(prices_a)
-    log_b = np.log(prices_b)
+    log_a = prices_a.apply(np.log)
+    log_b = prices_b.apply(np.log)
 
     dates = price_data.index
     n = len(price_data)
