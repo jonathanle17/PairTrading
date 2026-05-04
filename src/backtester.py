@@ -125,12 +125,15 @@ def run_pairs_backtest(price_data: pd.DataFrame, tickers: tuple[str, str]) -> di
                     trade_entry_z = 0.0
 
             if position == 0:
-                current_spread_magnitude = abs(spread_series.iloc[i])
+                # 1. Calculate the current deviation from the equilibrium (mean)
+                current_deviation = abs(spread_window.iloc[-1] - spread_window.mean())
+
+                # 2. Use the deviation for the filter instead of the raw spread
                 can_enter = (
                     p_value < config.P_VALUE_THRESHOLD
                     and half_life < config.MAX_HALF_LIFE
                     and abs(z_score) > config.Z_ENTRY
-                    and current_spread_magnitude >= config.MIN_SPREAD_PCT
+                    and current_deviation >= config.MIN_SPREAD_PCT
                 )
                 if can_enter:
                     curr_equity -= prev_equity * round_trip_cost_rate
