@@ -125,10 +125,12 @@ def run_pairs_backtest(price_data: pd.DataFrame, tickers: tuple[str, str]) -> di
                     trade_entry_z = 0.0
 
             if position == 0:
+                current_spread_magnitude = abs(spread_series.iloc[i])
                 can_enter = (
                     p_value < config.P_VALUE_THRESHOLD
                     and half_life < config.MAX_HALF_LIFE
                     and abs(z_score) > config.Z_ENTRY
+                    and current_spread_magnitude >= config.MIN_SPREAD_PCT
                 )
                 if can_enter:
                     curr_equity -= prev_equity * round_trip_cost_rate
