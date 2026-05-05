@@ -159,12 +159,25 @@ def run_pairs_backtest(price_data: pd.DataFrame, tickers: tuple[str, str]) -> di
                     and current_deviation >= config.MIN_SPREAD_PCT
                 )
                 ml_confirmed = True
+                ml_probability: float | None = None
                 if can_enter and config.USE_ML_FILTER:
                     ml_window = 30
                     start_idx = max(0, i - ml_window + 1)
                     price_window_a = prices_a.iloc[start_idx : i + 1]
                     price_window_b = prices_b.iloc[start_idx : i + 1]
-                    ml_confirmed = gatekeeper.should_trade(price_window_a, price_window_b)
+                    ml_probability = gatekeeper.predict_success_probability(
+                        price_window_a, price_window_b
+                    )
+                    ml_confirmed = (
+                        True
+                        if ml_probability is None
+                        else ml_probability >= config.ML_PROBABILITY_THRESHOLD
+                    )
+                    status = "CONFIRMED" if ml_confirmed else "REJECTED"
+                    if ml_probability is None:
+                        print(f"[{date}] ML Confidence: N/A - {status}")
+                    else:
+                        print(f"[{date}] ML Confidence: {ml_probability:.2%} - {status}")
 
                 if can_enter and ml_confirmed:
                     curr_equity -= prev_equity * round_trip_cost_rate

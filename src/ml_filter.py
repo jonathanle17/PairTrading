@@ -61,7 +61,7 @@ class TradeGatekeeper:
         vol_b = prices_b.pct_change().rolling(20).std()
         feat["vol_ratio_20"] = vol_a / vol_b.replace(0.0, np.nan)
 
-        return feat
+        return feat.ffill().bfill().fillna(0.0)
 
     def _rsi(self, prices: pd.Series, length: int = 14) -> pd.Series:
         if ta is not None:
@@ -93,17 +93,25 @@ class TradeGatekeeper:
             index=prices.index,
         )
 
-    def should_trade(self, prices_a: pd.Series, prices_b: pd.Series) -> bool:
-        """Return True when ML confidence exceeds configured threshold."""
+    def predict_success_probability(
+        self, prices_a: pd.Series, prices_b: pd.Series
+    ) -> float | None:
+        """Return Class-1 success probability; None when model is unavailable."""
         model = self._load_model()
         if model is None:
-            return True
+            return None
 
         feature_frame = self.generate_features(prices_a, prices_b)
-        latest = feature_frame.tail(1).ffill().bfill().fillna(0.0)
+        latest = feature_frame.tail(1)
         if latest.empty:
-            return True
+            return None
 
         probabilities = model.predict_proba(latest)
-        success_probability = float(probabilities[0][1])
+        return float(probabilities[0][1])
+
+    def should_trade(self, prices_a: pd.Series, prices_b: pd.Series) -> bool:
+        """Return True when ML confidence exceeds configured threshold."""
+        success_probability = self.predict_success_probability(prices_a, prices_b)
+        if success_probability is None:
+            return True
         return success_probability >= config.ML_PROBABILITY_THRESHOLD

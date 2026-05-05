@@ -6,3 +6,4 @@ statsmodels
 matplotlib
 scikit-learn
 pandas_ta
+joblib
