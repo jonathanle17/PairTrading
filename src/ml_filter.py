@@ -61,6 +61,9 @@ class TradeGatekeeper:
         vol_b = prices_b.pct_change().rolling(20).std()
         feat["vol_ratio_20"] = vol_a / vol_b.replace(0.0, np.nan)
 
+        # Ensure consistent, model-ready values even during warm-up.
+        # (The indicators are still computed over the full input series; we only
+        # replace NaNs after computation to "let them settle".)
         return feat.ffill().bfill().fillna(0.0)
 
     def _rsi(self, prices: pd.Series, length: int = 14) -> pd.Series:
@@ -93,10 +96,10 @@ class TradeGatekeeper:
             index=prices.index,
         )
 
-    def predict_success_probability(
+    def predict_proba_success_failure(
         self, prices_a: pd.Series, prices_b: pd.Series
-    ) -> float | None:
-        """Return Class-1 success probability; None when model is unavailable."""
+    ) -> tuple[float, float] | None:
+        """Return (P(success=1), P(failure=0)); None when model is unavailable."""
         model = self._load_model()
         if model is None:
             return None
@@ -106,12 +109,34 @@ class TradeGatekeeper:
         if latest.empty:
             return None
 
-        probabilities = model.predict_proba(latest)
-        return float(probabilities[0][1])
+        probabilities = model.predict_proba(latest)[0]
 
-    def should_trade(self, prices_a: pd.Series, prices_b: pd.Series) -> bool:
-        """Return True when ML confidence exceeds configured threshold."""
-        success_probability = self.predict_success_probability(prices_a, prices_b)
-        if success_probability is None:
-            return True
-        return success_probability >= config.ML_PROBABILITY_THRESHOLD
+        # Robustly map probabilities to class labels [0, 1] if possible.
+        if hasattr(model, "classes_"):
+            classes = list(getattr(model, "classes_"))
+            if 1 in classes and 0 in classes:
+                p_success = float(probabilities[classes.index(1)])
+                p_failure = float(probabilities[classes.index(0)])
+                return p_success, p_failure
+
+        # Fallback for the common case where model.classes_ == [0, 1]
+        p_success = float(probabilities[1])
+        p_failure = float(probabilities[0])
+        return p_success, p_failure
+
+    def should_trade(
+        self, prices_a: pd.Series, prices_b: pd.Series
+    ) -> tuple[bool, float | None, float | None]:
+        """
+        Return:
+          - decision: True if P(success=1) >= threshold
+          - prob_success: P(success=1) or None if model missing/unavailable
+          - prob_failure: P(failure=0) or None if model missing/unavailable
+        """
+        proba = self.predict_proba_success_failure(prices_a, prices_b)
+        if proba is None:
+            return True, None, None
+
+        prob_success, prob_failure = proba
+        decision = prob_success >= config.ML_PROBABILITY_THRESHOLD
+        return decision, prob_success, prob_failure

@@ -87,11 +87,13 @@ def _build_training_set(price_data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Seri
             if not can_enter:
                 continue
 
-            ml_window = 30
-            start_idx = max(0, i - ml_window + 1)
-            price_window_a = prices_a.iloc[start_idx : i + 1]
-            price_window_b = prices_b.iloc[start_idx : i + 1]
-            feature_row = gatekeeper.generate_features(price_window_a, price_window_b).tail(1)
+            # Align training feature context with inference: use the entire
+            # price history up to the entry time (i).
+            price_history_a = prices_a.iloc[: i + 1]
+            price_history_b = prices_b.iloc[: i + 1]
+            feature_row = gatekeeper.generate_features(
+                price_history_a, price_history_b
+            ).tail(1)
             if feature_row.empty:
                 continue
 

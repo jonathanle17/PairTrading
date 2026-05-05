@@ -160,24 +160,21 @@ def run_pairs_backtest(price_data: pd.DataFrame, tickers: tuple[str, str]) -> di
                 )
                 ml_confirmed = True
                 ml_probability: float | None = None
+                ml_failure_probability: float | None = None
                 if can_enter and config.USE_ML_FILTER:
-                    ml_window = 30
-                    start_idx = max(0, i - ml_window + 1)
-                    price_window_a = prices_a.iloc[start_idx : i + 1]
-                    price_window_b = prices_b.iloc[start_idx : i + 1]
-                    ml_probability = gatekeeper.predict_success_probability(
-                        price_window_a, price_window_b
-                    )
-                    ml_confirmed = (
-                        True
-                        if ml_probability is None
-                        else ml_probability >= config.ML_PROBABILITY_THRESHOLD
+                    # Align with training context: compute indicators over all history up to i.
+                    price_history_a = prices_a.iloc[: i + 1]
+                    price_history_b = prices_b.iloc[: i + 1]
+                    ml_confirmed, ml_probability, ml_failure_probability = gatekeeper.should_trade(
+                        price_history_a, price_history_b
                     )
                     status = "CONFIRMED" if ml_confirmed else "REJECTED"
-                    if ml_probability is None:
-                        print(f"[{date}] ML Confidence: N/A - {status}")
+                    if ml_probability is None or ml_failure_probability is None:
+                        print(f"[{date}] ML Probabilities - Success: N/A, Failure: N/A | Result: {status}")
                     else:
-                        print(f"[{date}] ML Confidence: {ml_probability:.2%} - {status}")
+                        print(
+                            f"[{date}] ML Probabilities - Success: {ml_probability:.2%}, Failure: {ml_failure_probability:.2%} | Result: {status}"
+                        )
 
                 if can_enter and ml_confirmed:
                     curr_equity -= prev_equity * round_trip_cost_rate
