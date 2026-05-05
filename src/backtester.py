@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 import config
+from src.ml_filter import TradeGatekeeper
 from src.stats_tools import (
     calculate_cointegration_p_value,
     calculate_half_life,
@@ -65,6 +66,7 @@ def run_pairs_backtest(price_data: pd.DataFrame, tickers: tuple[str, str]) -> di
     trades: list[Trade] = []
 
     round_trip_cost_rate = (config.COMMISSION_RATE + config.SLIPPAGE_RATE) * 2.0
+    gatekeeper = TradeGatekeeper()
 
     for i in range(1, n):
         date = dates[i]
@@ -156,7 +158,15 @@ def run_pairs_backtest(price_data: pd.DataFrame, tickers: tuple[str, str]) -> di
                     and abs(z_score) > config.Z_ENTRY
                     and current_deviation >= config.MIN_SPREAD_PCT
                 )
-                if can_enter:
+                ml_confirmed = True
+                if can_enter and config.USE_ML_FILTER:
+                    ml_window = 30
+                    start_idx = max(0, i - ml_window + 1)
+                    price_window_a = prices_a.iloc[start_idx : i + 1]
+                    price_window_b = prices_b.iloc[start_idx : i + 1]
+                    ml_confirmed = gatekeeper.should_trade(price_window_a, price_window_b)
+
+                if can_enter and ml_confirmed:
                     curr_equity -= prev_equity * round_trip_cost_rate
                     position = -1 if z_score > 0 else 1
                     trade_days = 0

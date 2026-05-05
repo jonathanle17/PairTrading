@@ -30,5 +30,9 @@ MAX_HALF_LIFE: int = 30
 COMMISSION_RATE: float = 0.001
 SLIPPAGE_RATE: float = 0.0005
 
+USE_ML_FILTER: bool = True
+MODEL_PATH: str = "models/trade_classifier.joblib"
+ML_PROBABILITY_THRESHOLD: float = 0.6
+
 RISK_FREE_RATE_ANNUAL: float = 0.02
 TRADING_DAYS_PER_YEAR: int = 252

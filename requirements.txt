@@ -4,3 +4,5 @@ numpy
 yfinance
 statsmodels
 matplotlib
+scikit-learn
+pandas_ta
